@@ -1,0 +1,15 @@
+{
+  "name": "Union Putzleinsdorf Informationssystem",
+  "short_name": "Union Putzleinsdorf",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8d1515",
+  "icons": [
+    {
+      "src": "assets/union-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

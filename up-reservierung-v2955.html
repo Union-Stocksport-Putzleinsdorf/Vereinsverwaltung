@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="de">
+<head><script src="./js/union-bootstrap.js"></script><script src="./js/union-local-store.js"></script><meta http-equiv="Content-Security-Policy" content="connect-src 'self' data: blob: https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; object-src 'none'"><script src="up-site-base.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Union Putzleinsdorf Reservierungssystem</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lokalspeicher SDKs über CDN einbinden -->
+    <script type="module" src="up-res-reservierung-01.mjs?v=2.9.52"></script>
+
+    <style>
+        :root {
+            --up-red: #b91c1c;
+            --up-red-dark: #450a0a;
+            --up-gold: #f59e0b;
+        }
+
+        html, body { min-height: 100%; }
+        body {
+            background:
+                url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNTM2IiBoZWlnaHQ9Ijg2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiIj48c3RvcCBzdG9wLWNvbG9yPSIjMTExODI3Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzA0NjVjIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHBhdGggZmlsbD0idXJsKCNiKSIgZD0iTTAgMGgxNTM2djg2NEgweiIvPjx0ZXh0IHg9Ijc2OCIgeT0iNDQwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjcyIj5VbmlvbiBQdXR6bGVpbnNkb3JmPC90ZXh0Pjwvc3ZnPg==") center center / cover fixed no-repeat !important;
+        }
+
+        /* Rote/anthrazitfarbene Glasoptik passend zum Vereins-Hintergrund */
+        header, nav {
+            background: rgba(20, 5, 5, 0.90) !important;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        main > div > div,
+        #tabMembers > div,
+        #tabAdmin > div {
+            background: rgba(24, 10, 10, 0.86) !important;
+            border-color: rgba(185, 28, 28, 0.48) !important;
+            box-shadow: 0 8px 28px rgba(0,0,0,.28);
+        }
+        #tabAdmin h3, #tabAdmin h4 { text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+
+        .vertical-text {
+            writing-mode: vertical-lr;
+            transform: rotate(180deg);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* Wochenansicht: dünne vertikale Trennung jeder Bahn */
+        .week-lane-divider {
+            border-right: 1px solid rgba(226, 232, 240, 0.28) !important;
+        }
+        .week-day-divider {
+            border-right: 2px solid rgba(245, 158, 11, 0.55) !important;
+        }
+
+        /* Touch-Auswahl in der Wochenansicht */
+        .slot-lane-selected {
+            background-color: rgba(245, 158, 11, 0.10) !important;
+            box-shadow: inset 2px 0 0 rgba(245, 158, 11, 0.45), inset -2px 0 0 rgba(245, 158, 11, 0.45);
+        }
+        .slot-start-selected {
+            background-color: #fef3c7 !important;
+            color: #111827 !important;
+            font-weight: 800 !important;
+            box-shadow: inset 0 0 0 2px #f59e0b;
+        }
+
+        /* Historie/Statistik */
+        .stats-card {
+            background: linear-gradient(135deg, rgba(69,10,10,.92), rgba(24,10,10,.92));
+            border: 1px solid rgba(239,68,68,.38);
+            border-radius: .55rem;
+            padding: .6rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+        }
+        .stats-table th {
+            background: rgba(69,10,10,.82);
+            color: #fecaca;
+        }
+        .stats-table td, .stats-table th {
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            padding: .35rem .45rem;
+        }
+        .stats-table tr:hover td { background: rgba(185,28,28,.10); }
+    
+        /* V1.9: Roter Hintergrund stärker sichtbar; normale Navigation aufgeräumt */
+        body::before { content:""; position:fixed; inset:0; pointer-events:none; z-index:-1; background:rgba(120,0,0,.06); }
+        header.bg-zinc-900 { background:rgba(24,24,27,.72) !important; backdrop-filter:blur(3px); }
+        nav.bg-zinc-900 { background:rgba(24,24,27,.60) !important; backdrop-filter:blur(3px); }
+        #tabBooking > .bg-zinc-800 { background:rgba(39,39,42,.58) !important; backdrop-filter:blur(2px); }
+        .navAdminOnly { display:none !important; }
+        body.adminMode .navAdminOnly { display:block !important; }
+
+        /* Fester Beenden-Button: unten rechts auf allen Ansichten */
+        #exitToStartButton {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 99999;
+            display: block;
+            min-width: 190px;
+            padding: 10px 16px;
+            border: 2px solid rgba(255,255,255,.65);
+            border-radius: 9px;
+            background: linear-gradient(135deg, #334155 0%, #111827 100%);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.2;
+            box-shadow: 0 5px 14px rgba(0,0,0,.55);
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        #exitToStartButton:active {
+            transform: translateY(1px);
+        }
+        @media (max-width: 600px) {
+            #exitToStartButton {
+                right: 10px;
+                bottom: 10px;
+                min-width: 165px;
+                padding: 9px 12px;
+                font-size: 13px;
+            }
+        }
+
+    </style>
+    <!-- App-Icon / Startbildschirm -->
+    <meta name="theme-color" content="#18181b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/union-logo.svg">
+    <link rel="icon" type="image/png" sizes="512x512" href="assets/union-logo.svg">
+    <link rel="apple-touch-icon" sizes="192x192" href="assets/union-logo.svg">
+    <link rel="apple-touch-icon" sizes="512x512" href="assets/union-logo.svg">
+    <link rel="manifest" href="manifest.webmanifest">
+
+<!-- Extra back button only for the management iframe; never duplicate the host navigation. -->
+<style id="upReservationReturnVisibility">
+#exitToStartButton{display:none!important}
+html.up-reservation-admin-entry #exitToStartButton{display:block!important}
+</style><script src="up-res-reservierung-02.js?v=2.9.52"></script>
+<style id="upReservationPhoneStyles">
+/* Smartphone: calendar must not collapse inside nested flex containers. */
+@media(max-width:768px){
+ html{height:100%;overflow-y:auto}
+ body{height:auto!important;min-height:100vh;min-height:100dvh;overflow-y:auto!important;overflow-x:hidden}
+ body>header>div{grid-template-columns:auto 1fr auto;gap:6px}
+ body>header h1{font-size:12px;line-height:1.25;min-width:0}
+ body>nav>div{flex-wrap:wrap;gap:6px}
+ body>main{flex:1 0 auto!important;min-height:calc(100vh - 150px);min-height:calc(100dvh - 150px);overflow:visible!important}
+ #tabBooking{flex:1 0 auto!important;min-height:60vh;min-height:60dvh;overflow:visible!important}
+ #tabBooking>div:last-child{flex:1 0 auto!important;min-height:55vh;min-height:55dvh;overflow:visible!important}
+ #savedBookingsContainer{min-height:50vh;min-height:50dvh;overflow:visible!important}
+ #savedBookingsContainer>.overflow-auto{max-height:70vh;max-height:70dvh;min-height:45vh;min-height:45dvh;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+ #bookingModal,#bookingActionModal{height:100%;height:100dvh;box-sizing:border-box;overflow-y:auto;align-items:flex-start;padding:8px}
+ #bookingModal>div,#bookingActionModal>div{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;box-sizing:border-box;margin:auto}
+ #bookingModal input,#bookingModal select,#bookingModal textarea{font-size:16px!important;min-height:38px}
+ #bookingModal button{min-height:38px}
+ #exitToStartButton{position:static!important;display:block;margin:8px 8px max(8px,env(safe-area-inset-bottom));width:calc(100% - 16px);flex-shrink:0}
+}
+</style></head>
+<body class="bg-gray-900 font-sans text-xs text-gray-100 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header mit zentriertem Titel -->
+    <header class="bg-zinc-900 border-b border-red-800 text-white shadow-sm shrink-0">
+        <div class="container mx-auto px-3 py-1.5 grid grid-cols-3 items-center">
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="location.reload()" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white px-2 py-1 rounded font-semibold transition cursor-pointer text-xs flex items-center gap-1">🔄 Aktualisieren</button>
+            </div>
+            <h1 class="text-sm font-bold tracking-wide text-center">
+                Union Putzleinsdorf Reservierungssystem
+            </h1>
+            <div class="flex items-center justify-end gap-1.5">
+                <button type="button" id="userLoginButton" onclick="openLoginModal()" class="bg-red-700 hover:bg-red-800 text-white px-2.5 py-1 rounded font-semibold transition cursor-pointer text-xs">🔐 Login</button>
+                <button type="button" id="logoutButton" onclick="logoutUser()" class="hidden bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-2.5 py-1 rounded font-semibold transition cursor-pointer text-xs" title="Abmelden und anderen Benutzer wählen">🚪 Abmelden</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation & Wochenumschaltung -->
+    <nav class="bg-zinc-900 border-b border-zinc-800 shrink-0">
+        <div class="container mx-auto px-3 flex items-center text-xs py-1 gap-3">
+            <div class="flex items-center space-x-2 bg-zinc-800/90 px-2.5 py-1 rounded border border-zinc-700 shadow-sm">
+                <button type="button" onclick="shiftWeek(-1)" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white px-1.5 py-0.5 rounded font-bold cursor-pointer" title="Vorherige Woche">◀</button>
+                <input type="date" id="calendarDate" onchange="renderSavedBookings()" class="bg-zinc-900 border border-zinc-700 text-white px-1 py-0.5 rounded text-xs">
+                <span id="kwDisplayBadge" class="font-bold text-red-400 px-1 text-xs">KW --</span>
+                <button type="button" onclick="shiftWeek(1)" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white px-1.5 py-0.5 rounded font-bold cursor-pointer" title="Nächste Woche">▶</button>
+                <button type="button" onclick="setWeekToToday()" class="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 text-zinc-200 px-2 py-0.5 rounded font-semibold cursor-pointer">Heute</button>
+            </div>
+            <div class="flex space-x-2 items-center ml-auto">
+                <button type="button" onclick="switchTab('booking')" id="navBooking" class="navAdminOnly py-1 border-b-2 border-red-600 font-semibold text-white cursor-pointer">📅 Reservierung</button>
+                <button type="button" onclick="switchTab('members')" id="navMembers" class="navAdminOnly py-1 border-b-2 border-transparent text-zinc-400 hover:text-white cursor-pointer">👥 Mitglieder (<span id="memberCount">0</span>)</button>
+                <button type="button" onclick="switchTab('admin')" id="navAdmin" class="py-1 border-b-2 border-transparent text-zinc-400 hover:text-white hidden cursor-pointer">⚙️ Admin</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-[99%] mx-auto px-1 py-1 space-y-1 flex-grow overflow-hidden flex flex-col w-full">
+        
+        <!-- ================= TAB 1 ================= -->
+        <div id="tabBooking" class="space-y-1 flex flex-col flex-grow overflow-hidden">
+            <div class="bg-zinc-800 p-2 rounded border border-zinc-700 flex justify-between items-center shrink-0">
+                <div class="flex items-center space-x-2">
+                    <button type="button" onclick="openClubhouseModal()" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1 rounded font-semibold cursor-pointer text-xs">🏠 Vereinheim Buchen</button>
+                    <button type="button" onclick="openBookingModal('Bahn 1')" class="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded font-semibold cursor-pointer text-xs">Bahn Buchen</button>
+                    <span id="slotSelectionHint" class="hidden items-center gap-2 bg-amber-900/70 border border-amber-600 text-amber-100 px-2 py-1 rounded text-[10px] font-semibold">
+                        <span id="slotSelectionHintText"></span>
+                        <button type="button" onclick="resetSlotSelection()" class="underline cursor-pointer">✕ Abbrechen</button>
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 gap-1 bg-zinc-900 p-0.5 rounded font-semibold text-center border border-zinc-700">
+                    <button type="button" onclick="changeView('day')" id="btnDay" class="px-3 py-0.5 text-zinc-300 rounded hover:bg-zinc-700 cursor-pointer text-xs">Tag</button>
+                    <button type="button" onclick="changeView('week')" id="btnWeek" class="px-3 py-0.5 bg-red-700 text-white rounded cursor-pointer text-xs">Woche</button>
+                </div>
+            </div>
+            <div class="bg-zinc-800 p-2 rounded border border-zinc-700 flex flex-col flex-grow overflow-hidden">
+                <div id="savedBookingsContainer" class="space-y-2 overflow-y-auto flex-grow pr-1"></div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: MITGLIEDER ================= -->
+        <div id="tabMembers" class="space-y-2 hidden overflow-y-auto flex-grow">
+            <div class="bg-zinc-800 p-3 rounded border border-zinc-700 space-y-2">
+                <div class="flex justify-between items-center flex-wrap gap-2">
+                    <h3 class="text-xs font-bold text-zinc-200">Mitgliederverzeichnis & Passwort-Änderung (Nachname, Vorname)</h3>
+                    
+                    <div id="membersAdminSaveSection" class="hidden">
+                        <button type="button" onclick="openSavePromptModal()" class="bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded font-bold text-xs shadow cursor-pointer">💾 Änderungen speichern</button>
+                    </div>
+
+                    <div id="addMemberSection" class="hidden flex gap-1.5">
+                        <input type="text" id="newMemberName" placeholder="Nachname Vorname" class="bg-zinc-900 border border-zinc-700 rounded p-1 text-white">
+                        <input type="password" id="newMemberPass" placeholder="Passwort" class="bg-zinc-900 border border-zinc-700 rounded p-1 w-20 text-white">
+                        <button type="button" onclick="addMember()" class="bg-red-700 hover:bg-red-800 text-white px-2 py-1 rounded font-semibold cursor-pointer">+ Hinzufügen</button>
+                    </div>
+                </div>
+                
+                <div id="ownPasswordChangeBox" class="bg-zinc-900 p-2.5 rounded border border-zinc-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div>
+                        <span class="font-bold text-zinc-200">Mein eigenes Passwort ändern:</span>
+                        <p class="text-[11px] text-zinc-400">Geben Sie Ihr aktuelles und Ihr neues Wunschpasswort ein.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 items-center">
+                        <input type="password" id="ownCurrentPassInput" placeholder="Aktuelles Passwort" class="bg-zinc-800 border border-zinc-700 rounded p-1 text-white text-xs">
+                        <input type="password" id="ownNewPassInput" placeholder="Neues Passwort" class="bg-zinc-800 border border-zinc-700 rounded p-1 text-white text-xs">
+                        <button type="button" onclick="changeOwnPassword()" class="bg-red-700 hover:bg-red-800 text-white px-2.5 py-1 rounded font-semibold cursor-pointer text-xs">Ändern</button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-zinc-900 border-b border-zinc-700 text-zinc-400 text-[11px]">
+                                <th class="p-1.5">Name (Nachname, Vorname)</th>
+                                <th class="p-1.5">Passwort</th>
+                                <th class="p-1.5">Status</th>
+                                <th class="p-1.5">Sonderrechte</th>
+                                <th id="adminActionHeader" class="p-1.5 hidden">Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody id="membersTableBody" class="divide-y divide-zinc-700 text-zinc-300"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: ADMIN ================= -->
+        <div id="tabAdmin" class="space-y-2 hidden overflow-y-auto flex-grow">
+            <div class="bg-zinc-800 p-3 rounded border border-zinc-700 border-l-4 border-l-red-600 space-y-2.5">
+                <h3 class="text-xs font-bold text-red-200">⚙️ Admin-Bereich & Einstellungen</h3>
+                
+                <div class="bg-red-950/60 p-3 rounded border border-red-700 flex justify-between items-center">
+                    <div>
+                        <h4 class="font-bold text-red-200">Änderungen sichern</h4>
+                        <p class="text-[11px] text-red-300">Alle vorgenommenen Anpassungen durch Admin-Passwort bestätigen und speichern.</p>
+                    </div>
+                    <button type="button" onclick="openSavePromptModal()" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded font-bold cursor-pointer text-xs shadow">💾 Änderungen speichern & zurück</button>
+                </div>
+
+                <div class="border-t border-zinc-700 pt-3 space-y-2">
+                    <div class="bg-zinc-900 rounded border border-red-800 p-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                            <h4 class="font-bold text-red-200">📅 Serienreservierung</h4>
+                            <p class="text-[11px] text-zinc-400">Nur der Administrator kann wiederkehrende wöchentliche Reservierungen anlegen.</p>
+                        </div>
+                        <button type="button" onclick="openSeriesReservationModal()" class="bg-red-700 hover:bg-red-800 text-white px-3 py-1.5 rounded font-bold cursor-pointer text-xs">+ Serie anlegen</button>
+                    </div>
+                </div>
+
+                <div class="border-t border-zinc-700 pt-2 space-y-1.5">
+                    <h4 class="font-bold text-zinc-300">Admin-Passwort ändern</h4>
+                    <div class="flex gap-1.5 max-w-sm">
+                        <input type="password" id="newAdminPassInput" placeholder="Neues Passwort" class="bg-zinc-900 border border-zinc-700 rounded p-1 flex-grow text-white">
+                        <button type="button" onclick="changeAdminPassword()" class="bg-zinc-700 hover:bg-zinc-600 text-white px-2.5 py-1 rounded font-semibold cursor-pointer">Vormerken</button>
+                    </div>
+                </div>
+
+                <div class="border-t border-red-900/70 pt-3 space-y-2">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                            <h4 class="font-bold text-red-200">📊 Reservierungs-Historie & Statistik</h4>
+                            <p class="text-[11px] text-zinc-400">Nur im Admin-Bereich sichtbar. Reservierungen und Stornierungen werden getrennt ausgewertet.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="printStatistics()" class="bg-zinc-700 hover:bg-zinc-600 text-white px-2.5 py-1 rounded font-semibold cursor-pointer text-xs">🖨️ Ausdrucken</button>
+                            <button type="button" onclick="resetStatistics()" class="bg-red-900 hover:bg-red-800 text-white px-2.5 py-1 rounded font-semibold cursor-pointer text-xs">🗑️ Historie zurücksetzen</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-black/20 border border-red-900/50 rounded p-2">
+                        <label for="statsYearSelect" class="font-semibold text-zinc-300 text-xs">Auswertungsjahr:</label>
+                        <select id="statsYearSelect" onchange="renderAdminStats()" class="bg-zinc-900 border border-zinc-700 rounded p-1 text-white text-xs"></select>
+                    </div>
+                    <div id="adminStatsContainer" class="space-y-2 text-xs text-zinc-300"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-zinc-700 pt-2">
+                    <div>
+                        <h4 class="font-bold text-zinc-300 mb-1.5">Spielmodus-Vorlagen</h4>
+                        <div class="flex gap-1.5 mb-1.5 items-center">
+                            <input type="text" id="newTemplateName" placeholder="Neuer Modus..." class="bg-zinc-900 border border-zinc-700 rounded p-1 flex-grow text-white">
+                            <select id="newTemplatePlayers" class="bg-zinc-900 border border-zinc-700 rounded p-1 text-white">
+                                <option value="0">0 Spieler</option>
+                                <option value="1">1 Spieler</option>
+                                <option value="2">2 Spieler</option>
+                                <option value="3">3 Spieler</option>
+                                <option value="4" selected>4 Spieler</option>
+                            </select>
+                            <button type="button" onclick="addTemplate()" class="bg-zinc-700 hover:bg-zinc-600 text-white px-2 py-1 rounded font-semibold cursor-pointer">+ Hinzufügen</button>
+                        </div>
+                        <div id="templatesListContainer" class="space-y-1"></div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-zinc-300 mb-1.5">Vereinsheim-Auswahl / Anlässe</h4>
+                        <div class="flex gap-1.5 mb-1.5">
+                            <input type="text" id="newClubhouseTemplateName" placeholder="Neuer Anlass..." class="bg-zinc-900 border border-zinc-700 rounded p-1 flex-grow text-white">
+                            <button type="button" onclick="addClubhouseTemplate()" class="bg-zinc-700 hover:bg-zinc-600 text-white px-2 py-1 rounded font-semibold cursor-pointer">+ Hinzufügen</button>
+                        </div>
+                        <div id="clubhouseTemplatesListContainer" class="space-y-1"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Serienreservierung (nur Admin) -->
+    <div id="seriesReservationModal" class="fixed inset-0 bg-black bg-opacity-70 hidden flex justify-center items-center z-50 p-2">
+        <div class="bg-zinc-800 p-3 rounded-lg shadow-xl w-full max-w-2xl space-y-2.5 border border-red-700 max-h-[95vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-zinc-700 pb-1">
+                <h3 class="font-bold text-red-300 text-xs">📅 Serienreservierung – nur Administrator</h3>
+                <button type="button" onclick="closeSeriesReservationModal()" class="text-zinc-400 hover:text-white font-bold text-base cursor-pointer">✕</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div><label class="block font-semibold text-zinc-300 text-xs">Beginn</label><input type="date" id="seriesStartDate" class="w-full bg-zinc-900 border border-zinc-700 rounded p-1.5 text-white text-xs"></div>
+                <div><label class="block font-semibold text-zinc-300 text-xs">Ende</label><input type="date" id="seriesEndDate" class="w-full bg-zinc-900 border border-zinc-700 rounded p-1.5 text-white text-xs"></div>
+                <div><label class="block font-semibold text-zinc-300 text-xs">Wochentag</label><select id="seriesWeekday" class="w-full bg-zinc-900 border border-zinc-700 rounded p-1.5 text-white text-xs"><option value="1">Montag</option><option value="2">Dienstag</option><option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option><option value="6">Samstag</option><option value="0">Sonntag</option></select></div>
+                <div><label class="block font-semibold text-zinc-300 text-xs">Bahn / Ressource</label><select id="seriesResource" onchange="onSeriesResourceChange()" class="w-full bg-zinc-900 border border-zinc-700 rounded p-1.5 text-white text-xs"><option>Bahn 1</option><option>Bahn 2</option><option>Bahn 3</option><option>Bahn 4</option><option>Vereinsheim</option></select></div>
+                <div><label class="block font-semibold text-zinc-300 text-xs">Von</label><select id="seriesTimeFrom" class="w-full bg-zinc-900 border border-zinc-700 rounded p-1.5 text-white text-xs"></select></div>
+                <div><label class="block font-semibold text-zinc-300 text-xs">Bis</label><select id="seriesTimeTo" class="w-full bg-zinc-900 border border-zinc-700 rounded p-1.5 text-white text-xs"></select></div>
+            </div>
+            <div id="seriesModeSection">
+                <label class="block font-semibold text-zinc-300 text-xs">Spielmodus</label>
+                <select id="seriesTemplateSelect" onchange="onSeriesTemplateChange()" class="w-full bg-zinc-900 border border-zinc-700 rounded p-1.5 text-white text-xs"></select>
+            </div>
+            <div id="seriesPlayersSection" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+            <div id="seriesClubhouseHint" class="hidden text-[11px] text-blue-300 bg-blue-950/40 border border-blue-800 rounded p-2">Beim Vereinsheim wird der gewählte Anlass für alle Termine übernommen.</div>
+            <div class="flex gap-2 pt-1">
+                <button type="button" onclick="handleSeriesReservation()" class="w-full bg-red-700 hover:bg-red-800 text-white py-1.5 rounded font-semibold cursor-pointer text-xs">Serie anlegen</button>
+                <button type="button" onclick="closeSeriesReservationModal()" class="w-full bg-zinc-700 hover:bg-zinc-600 text-white py-1.5 rounded font-semibold cursor-pointer text-xs">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Passwort-Bestätigung für Admin-Speichern -->
+    <div id="savePromptModal" class="fixed inset-0 bg-black bg-opacity-70 hidden flex justify-center items-center z-50 p-2">
+        <div class="bg-zinc-800 p-4 rounded-lg shadow-xl w-80 space-y-3 border border-red-700">
+            <h3 class="font-bold text-zinc-100 text-xs">🔐 Admin-Bestätigung erforderlich</h3>
+            <p class="text-[11px] text-zinc-300">Bitte geben Sie das Admin-Passwort ein, um alle Änderungen endgültig zu speichern:</p>
+            <input type="password" id="confirmAdminPassInput" placeholder="Admin-Passwort" class="w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-white text-xs">
+            <div class="flex space-x-2">
+                <button type="button" onclick="executeAdminSave()" class="w-full bg-red-700 hover:bg-red-800 text-white py-1.5 rounded font-semibold transition cursor-pointer text-xs">Speichern & Zurück</button>
+                <button type="button" onclick="closeSavePromptModal()" class="w-full bg-zinc-700 hover:bg-zinc-600 text-white py-1.5 rounded font-semibold transition cursor-pointer text-xs">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals für Buchung, Vereinsheim, Login -->
+    <div id="bookingModal" class="fixed inset-0 bg-black bg-opacity-70 hidden flex justify-center items-center z-50 p-2">
+        <div class="bg-zinc-800 p-3 rounded-lg shadow-xl w-full max-w-2xl space-y-2.5 border border-red-700">
+            <div class="flex justify-between items-center border-b border-zinc-700 pb-1">
+                <h3 id="modalTitleHeading" class="font-bold text-zinc-100 text-xs">📝 Bahn reservieren</h3>
+                <button type="button" onclick="closeBookingModal()" class="text-zinc-400 hover:text-white font-bold text-base cursor-pointer">✕</button>
+            </div>
+            <form onsubmit="handleBooking(event)" class="space-y-2">
+                <!-- 1. DATUM UND ZEIT -->
+                <div class="bg-zinc-900/70 border border-zinc-700 rounded p-2">
+                    <div class="text-xs font-bold text-red-400 mb-1">1. Datum und Zeit</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div>
+                            <label class="block font-semibold text-zinc-300">Datum</label>
+                            <input type="date" id="modalBookDate" onchange="checkTimeAvailability()" required class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 text-white text-sm font-medium">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-zinc-300">Von</label>
+                            <select id="modalTimeFrom" onchange="checkTimeAvailability()" class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 text-white text-sm font-medium"></select>
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-zinc-300">Bis</label>
+                            <select id="modalTimeTo" onchange="checkTimeAvailability()" class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 text-white text-sm font-medium"></select>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <label class="block font-semibold text-zinc-300">Bahn</label>
+                        <select id="modalSelectedResource" onchange="checkTimeAvailability()" class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 font-bold text-red-500">
+                            <option value="Bahn 1">Bahn 1</option><option value="Bahn 2">Bahn 2</option><option value="Bahn 3">Bahn 3</option><option value="Bahn 4">Bahn 4</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 2. SPIELMODUS -->
+                <div class="bg-zinc-900/70 border border-zinc-700 rounded p-2">
+                    <div class="text-xs font-bold text-red-400 mb-1">2. Spielmodus</div>
+                    <select id="modalTemplateSelect" onchange="onTemplateChange()" class="w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-white text-sm font-medium">
+                    </select>
+                    <div id="gameModeHint" class="text-[10px] text-zinc-400 mt-1">Bitte Spielmodus auswählen.</div>
+                </div>
+
+                <!-- 3. SPIELERAUSWAHL - wird nach Modusauswahl eingeblendet -->
+                <div id="playerSelectionSection" class="bg-zinc-900/70 border border-red-800 rounded p-2 hidden">
+                    <div class="text-xs font-bold text-red-400 mb-1">3. Spielerauswahl</div>
+                    <div id="playerSelectionHint" class="text-[10px] text-zinc-400 mb-2">Bitte zuerst einen Spielmodus auswählen.</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="block font-bold text-zinc-200">Heimteam</label>
+                            <div class="player-field" id="field_homePlayer1"><select id="homePlayer1" class="member-select w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-zinc-200 font-medium text-sm" onchange="updateMemberDropdowns(); checkTimeAvailability();"><option value="">-- Spieler 1 --</option></select></div>
+                            <div class="player-field" id="field_homePlayer2"><select id="homePlayer2" class="member-select w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-zinc-300 font-medium text-sm" onchange="updateMemberDropdowns()"><option value="">-- Spieler 2 --</option></select></div>
+                            <div class="player-field" id="field_homePlayer3"><select id="homePlayer3" class="member-select w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-zinc-300 font-medium text-sm" onchange="updateMemberDropdowns()"><option value="">-- Spieler 3 --</option></select></div>
+                            <div class="player-field" id="field_homePlayer4"><select id="homePlayer4" class="member-select w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-zinc-300 font-medium text-sm" onchange="updateMemberDropdowns()"><option value="">-- Spieler 4 --</option></select></div>
+                        </div>
+                        <div class="space-y-1" id="guestTeamContainer">
+                            <label class="block font-bold text-zinc-200">Gegner / Gastteam</label>
+                            <div class="player-field" id="field_guestPlayer1"><select id="guestPlayer1" class="member-select w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-zinc-300 font-medium text-sm" onchange="updateMemberDropdowns()"><option value="">-- Gegner 1 --</option></select></div>
+                            <div class="player-field" id="field_guestPlayer2"><select id="guestPlayer2" class="member-select w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-zinc-300 font-medium text-sm" onchange="updateMemberDropdowns()"><option value="">-- Gegner 2 --</option></select></div>
+                            <div class="player-field" id="field_guestPlayer3"><select id="guestPlayer3" class="member-select w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-zinc-300 font-medium text-sm" onchange="updateMemberDropdowns()"><option value="">-- Gegner 3 --</option></select></div>
+                            <div class="player-field" id="field_guestPlayer4"><select id="guestPlayer4" class="member-select w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-zinc-300 font-medium text-sm" onchange="updateMemberDropdowns()"><option value="">-- Gegner 4 --</option></select></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="availabilityWarning" class="p-1.5 bg-red-950 border border-red-700 rounded text-red-300 font-medium text-[11px] hidden">
+                    ⚠️ Achtung: In diesem Zeitraum ist diese Bahn bereits belegt!
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="submit" id="modalSubmitBtn" class="w-full bg-red-700 hover:bg-red-800 text-white py-1.5 rounded font-semibold transition cursor-pointer">Verbindlich buchen</button>
+                    <button type="button" onclick="closeBookingModal()" class="w-full bg-zinc-700 hover:bg-zinc-600 text-white py-1.5 rounded font-semibold transition cursor-pointer">Abbrechen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reservierungsaktionen für Touch/Desktop -->
+    <div id="bookingActionModal" class="fixed inset-0 bg-black bg-opacity-70 hidden flex justify-center items-center z-[60] p-3">
+        <div class="bg-zinc-800 p-4 rounded-lg shadow-xl w-full max-w-md border border-red-700">
+            <div class="flex justify-between items-center border-b border-zinc-700 pb-2 mb-3">
+                <h3 class="font-bold text-zinc-100 text-sm">📋 Reservierung</h3>
+                <button type="button" onclick="closeBookingActionModal()" class="text-zinc-400 hover:text-white font-bold text-lg">✕</button>
+            </div>
+            <div id="bookingActionInfo" class="text-xs text-zinc-300 space-y-1 mb-4"></div>
+            <div id="bookingActionButtons" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+            <button type="button" onclick="closeBookingActionModal()" class="w-full mt-2 bg-zinc-700 hover:bg-zinc-600 text-white py-2 rounded font-semibold">Abbrechen</button>
+        </div>
+    </div>
+
+    <div id="clubhouseModal" class="fixed inset-0 bg-black bg-opacity-70 hidden flex justify-center items-center z-50 p-2">
+        <div class="bg-zinc-800 p-3 rounded-lg shadow-xl w-full max-w-md space-y-2.5 border border-blue-700">
+            <div class="flex justify-between items-center border-b border-zinc-700 pb-1">
+                <h3 class="font-bold text-blue-400 text-xs">🏠 Vereinsheim reservieren</h3>
+                <button type="button" onclick="closeClubhouseModal()" class="text-zinc-400 hover:text-white font-bold text-base cursor-pointer">✕</button>
+            </div>
+            <form onsubmit="handleClubhouseBooking(event)" class="space-y-2">
+                <div>
+                    <label class="block font-semibold text-zinc-300">Datum (TT.MM.JJJJ)</label>
+                    <input type="date" id="clubhouseDate" required class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 text-white text-sm font-medium">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-semibold text-zinc-300">Von</label>
+                        <select id="clubhouseTimeFrom" class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 text-white text-sm font-medium"></select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-zinc-300">Bis</label>
+                        <select id="clubhouseTimeTo" class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 text-white text-sm font-medium"></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-semibold text-zinc-300">Anlass / Beschreibung</label>
+                    <select id="clubhouseTemplateSelect" class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 font-semibold text-blue-400 text-sm"></select>
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white py-1.5 rounded font-semibold transition cursor-pointer">Vereinsheim buchen</button>
+                    <button type="button" onclick="closeClubhouseModal()" class="w-full bg-zinc-700 hover:bg-zinc-600 text-white py-1.5 rounded font-semibold transition cursor-pointer">Abbrechen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-70 hidden flex justify-center items-center z-50 p-2">
+        <div class="bg-zinc-800 p-3 rounded-lg shadow-lg w-72 space-y-2.5 border border-zinc-700">
+            <h3 class="text-xs font-bold text-zinc-100">Anmeldung</h3>
+            <div>
+                <label class="block font-semibold text-zinc-300">Benutzer wählen</label>
+                <select id="loginUserSelect" class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 text-white text-sm font-medium">
+                    <option value="admin">⚙️ Administrator</option>
+                </select>
+            </div>
+            <div>
+                <label class="block font-semibold text-zinc-300">Passwort</label>
+                <input type="password" id="loginPasswordInput" placeholder="Passwort" class="mt-0.5 w-full border border-zinc-700 rounded p-1 bg-zinc-900 text-white">
+            </div>
+            <div class="flex space-x-2">
+                <button type="button" onclick="verifyLogin()" class="w-full bg-red-700 hover:bg-red-800 text-white py-1.5 rounded font-semibold transition cursor-pointer">Einloggen</button>
+                <button type="button" onclick="closeLoginModal()" class="w-full bg-zinc-700 hover:bg-zinc-600 text-white py-1.5 rounded font-semibold transition cursor-pointer">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: verpflichtende Passwort-Änderung (kein Abbrechen möglich) -->
+    <div id="forcedPasswordModal" class="fixed inset-0 bg-black bg-opacity-80 hidden flex justify-center items-center z-[70] p-2">
+        <div class="bg-zinc-800 p-4 rounded-lg shadow-xl w-80 space-y-3 border border-amber-600">
+            <h3 class="font-bold text-amber-300 text-xs">🔑 Passwort ändern erforderlich</h3>
+            <p class="text-[11px] text-zinc-300">Sie verwenden noch ein Standard- bzw. vom Administrator vergebenes Passwort. Bitte legen Sie jetzt Ihr persönliches Passwort fest, um fortzufahren.</p>
+            <div>
+                <label class="block font-semibold text-zinc-300 text-xs">Neues Passwort</label>
+                <input type="password" id="forcedNewPassInput" placeholder="Neues Passwort" class="mt-0.5 w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-white text-sm">
+            </div>
+            <div>
+                <label class="block font-semibold text-zinc-300 text-xs">Neues Passwort bestätigen</label>
+                <input type="password" id="forcedNewPassConfirm" placeholder="Passwort wiederholen" class="mt-0.5 w-full border border-zinc-700 rounded p-1.5 bg-zinc-900 text-white text-sm">
+            </div>
+            <button type="button" onclick="submitForcedPasswordChange()" class="w-full bg-amber-600 hover:bg-amber-700 text-white py-1.5 rounded font-semibold transition cursor-pointer text-xs">Passwort speichern &amp; fortfahren</button>
+        </div>
+    </div>
+
+    <!-- JavaScript Logik mit Fallback und garantierter Initialisierung -->
+    <script src="up-res-reservierung-03.js?v=2.9.52"></script>
+
+    <div id="exitMessage" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100000;align-items:center;justify-content:center;padding:24px;">
+        <div style="max-width:520px;width:100%;background:#18181b;color:#fff;border:2px solid #b91c1c;border-radius:16px;padding:24px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.7);">
+            <div style="font-size:42px;margin-bottom:10px;">⚠️</div>
+            <div style="font-size:22px;font-weight:800;margin-bottom:10px;">Zurück zur Vereinsverwaltung</div>
+            <div style="font-size:16px;line-height:1.5;margin-bottom:20px;">
+                Bitte den Zurück-Button der übergeordneten Vereinsverwaltung verwenden. Die Reservierung ist hier in einem getrennten Fensterbereich eingebettet.
+            </div>
+            <button type="button" onclick="closeExitMessage()" style="padding:12px 20px;border-radius:10px;border:0;background:#b91c1c;color:white;font-weight:800;font-size:16px;">
+                Zurück zum Programm
+            </button>
+        </div>
+    </div>
+
+    <button id="exitToStartButton" type="button" onclick="exitToStartPage()" aria-label="Zurück zur Vereinsverwaltung">
+        ↩️ Zurück zur Vereinsverwaltung
+    </button>
+<script src="up-res-reservierung-04.js?v=2.9.52"></script></body>
+</html>

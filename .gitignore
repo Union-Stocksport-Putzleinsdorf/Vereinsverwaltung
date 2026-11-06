@@ -1,0 +1,23 @@
+# Private Exporte und Zugangsdaten nicht versionieren
+*.pdf
+*.docx
+*.xlsx
+*.xls
+*.csv
+*.zip
+*.bak
+*.skmr
+!assets/stockapp-vorlage-9-teams.skmr
+*Sicherung*.json
+*Backup*.json
+*backup*.json
+service-account*.json
+*serviceAccount*.json
+.env
+.env.*
+private/
+backups/
+exports/
+
+*PRIVAT*.json
+05_PRIVATE_DATEN_NICHT_GITHUB/
