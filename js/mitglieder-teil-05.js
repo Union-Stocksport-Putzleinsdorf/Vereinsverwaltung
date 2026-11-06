@@ -1,0 +1,1 @@
+window.addEventListener("load",()=>{setTimeout(()=>window.upLokalspeicherRefresh?.(),300);});

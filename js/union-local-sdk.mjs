@@ -1,0 +1,10 @@
+const S=window.UnionLocal;
+export const initializeApp=S.initializeApp,getApps=()=>window.firebase.apps,getFirestore=()=>S.db,getAuth=()=>S.auth;
+export const doc=(base,...parts)=>new S.Ref([base.path,...parts].filter(Boolean).join('/')),collection=(base,...parts)=>new S.Ref([base.path,...parts].filter(Boolean).join('/'),'collection');
+export const getDoc=async r=>{const s=await r.get();return {...s,exists:()=>s.exists}},getDocs=r=>r.get(),setDoc=(r,v,o)=>r.set(v,o),updateDoc=(r,v)=>r.update(v),deleteDoc=r=>r.delete(),addDoc=(r,v)=>r.add(v);
+export const onSnapshot=(r,...args)=>{const fn=args.find(x=>typeof x==='function');return r.onSnapshot(s=>fn(s.docs?s:{...s,exists:()=>s.exists}))};
+export const where=(...x)=>['where',...x],orderBy=(...x)=>['orderBy',...x],limit=n=>['limit',n],query=(r,...constraints)=>constraints.reduce((v,[fn,...args])=>v[fn](...args),r);
+export const serverTimestamp=()=>new Date().toISOString(),Timestamp=S.Timestamp,writeBatch=()=>S.batch(),runTransaction=(db,fn)=>db.runTransaction(tx=>fn({...tx,get:async r=>{const s=await r.get();return {...s,exists:()=>s.exists}}}));
+export const signInWithEmailAndPassword=(a,e,p)=>a.signInWithEmailAndPassword(e,p),signOut=a=>a.signOut(),onAuthStateChanged=(a,f)=>a.onAuthStateChanged(f),setPersistence=(a,p)=>a.setPersistence(p),browserLocalPersistence='local';
+export const getDatabase=()=>({}),ref=(base,path)=>({path}),get=async()=>{throw Error('Altdaten-Import in dieser Ausgabe deaktiviert')};
+export const getStorage=()=>({}),uploadBytes=async(r,blob)=>{const data=await new Promise(resolve=>{const f=new FileReader();f.onload=()=>resolve(f.result);f.readAsDataURL(blob)});localStorage.setItem('union_blob_'+r.path,data);return {ref:r}},getBlob=async r=>{const v=localStorage.getItem('union_blob_'+r.path);if(!v)throw Error('Datei fehlt');return (await fetch(v)).blob()},deleteObject=async r=>localStorage.removeItem('union_blob_'+r.path);
